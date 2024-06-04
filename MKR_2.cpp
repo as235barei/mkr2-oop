@@ -2,6 +2,20 @@
 #include <vector>
 #include <string>
 
+// Попереднє оголошення класів
+class ComputerGadget;
+class VoiceRecorder;
+
+// Структура віртуальної таблиці для класу ComputerGadget
+struct ComputerGadgetVTable {
+	void (ComputerGadget::* getInfo)() const;
+};
+
+// Структура віртуальної таблиці для класу VoiceRecorder
+struct VoiceRecorderVTable {
+	void (VoiceRecorder::* getInfo)() const;
+};
+
 // Базовий клас Комп'ютерний гаджет
 class ComputerGadget {
 protected:
@@ -13,11 +27,17 @@ protected:
 	double batteryLife;       // Час автономної роботи в годинах
 	bool isOn;                // Стан гаджета (увімкнено/вимкнено)
 
+	// Покажчик на віртуальну таблицю
+	ComputerGadgetVTable* vTablePtr;
+
 public:
 	// Конструктор з параметрами
 	ComputerGadget(const std::string& brand, const std::string& model, double price,
 		const std::string& color, double weight, double batteryLife)
-		: brand(brand), model(model), price(price), color(color), weight(weight), batteryLife(batteryLife), isOn(false) {}
+		: brand(brand), model(model), price(price), color(color), weight(weight), batteryLife(batteryLife), isOn(false) {
+		// Ініціалізація покажчика на віртуальну таблицю
+		vTablePtr = getVTablePtr();
+	}
 
 	// Віртуальний деструктор
 	virtual ~ComputerGadget() = default;
@@ -78,6 +98,19 @@ public:
 	static void displayGeneralInfo() {
 		std::cout << "___This is a general computer gadget.___ \n" << std::endl;
 	}
+
+	// Метод для отримання покажчика на віртуальну таблицю
+	ComputerGadgetVTable* getVTablePtr() {
+		static ComputerGadgetVTable vTable = {
+			&ComputerGadget::getInfo
+		};
+		return &vTable;
+	}
+
+	// Getter for vTablePtr
+	ComputerGadgetVTable* getVTable() const {
+		return vTablePtr;
+	}
 };
 
 // Клас диктофон
@@ -88,6 +121,9 @@ private:
 	std::string additionalFeatures;  // Додаткові функції
 	double maxRecordingTime;         // Максимальний час запису в годинах
 
+	// Покажчик на віртуальну таблицю
+	VoiceRecorderVTable* vTablePtr;
+
 public:
 	VoiceRecorder(const std::string& brand, const std::string& model, double price,
 		const std::string& color, double weight, double batteryLife,
@@ -95,7 +131,10 @@ public:
 		double maxRecordingTime, const std::string& additionalFeatures)
 		: ComputerGadget(brand, model, price, color, weight, batteryLife),
 		microphoneType(microphoneType), recordingFormat(recordingFormat),
-		maxRecordingTime(maxRecordingTime), additionalFeatures(additionalFeatures) {}
+		maxRecordingTime(maxRecordingTime), additionalFeatures(additionalFeatures) {
+		// Ініціалізація покажчика на віртуальну таблицю
+		vTablePtr = getVTablePtr();
+	}
 
 	// Методи для роботи з атрибутами
 	void setMicrophoneType(const std::string& microphoneType) {
@@ -164,6 +203,19 @@ public:
 			<< ", Additional Features: " << additionalFeatures
 			<< ", State: " << (isOn ? "On" : "Off") << "\n" << std::endl;
 	}
+
+	// Метод для отримання покажчика на віртуальну таблицю
+	VoiceRecorderVTable* getVTablePtr() {
+		static VoiceRecorderVTable vTable = {
+			&VoiceRecorder::getInfo
+		};
+		return &vTable;
+	}
+
+	// Getter for vTablePtr
+	VoiceRecorderVTable* getVTable() const {
+		return vTablePtr;
+	}
 };
 
 // Контейнерний клас для роботи з об'єктами ComputerGadget
@@ -199,7 +251,7 @@ public:
 	// Відображення вмісту контейнера
 	void displayAll() const {
 		for (const auto& gadget : gadgets) {
-			gadget->getInfo();
+			(gadget->*gadget->getVTable()->getInfo)();
 		}
 	}
 
@@ -268,14 +320,14 @@ int main() {
 	std::cout << "\n----------Searching for Gadget at Index 1:----------" << std::endl;
 	ComputerGadget* searchedGadget = container.getGadget(1);
 	if (searchedGadget) {
-		searchedGadget->getInfo();
+		(searchedGadget->*searchedGadget->getVTable()->getInfo)();
 	}
 
 	// Пошук об'єкта за індексом, який не існує
 	std::cout << "----------Searching for Gadget at Index 3:----------" << std::endl;
 	ComputerGadget* searchedGadgetAgain = container.getGadget(3);
 	if (searchedGadgetAgain) {
-		searchedGadgetAgain->getInfo();
+		(searchedGadgetAgain->*searchedGadgetAgain->getVTable()->getInfo)();
 	}
 
 	// Видалення об'єкта з контейнера
